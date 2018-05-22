@@ -7,7 +7,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
-EPISODES = 5000
+EPISODES = 1000
 
 
 class DQNAgent:
@@ -17,25 +17,16 @@ class DQNAgent:
         self.memory = deque(maxlen=2000)
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.1
-        self.epsilon_decay = 0.998
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
 
-    # def baseline_model(grid_size,num_actions,hidden_size):
-    # #seting up the model with keras
-    #     model = Sequential()
-    #     model.add(Dense(hidden_size, input_shape=(grid_size**2,), activation='relu'))
-    #     model.add(Dense(hidden_size, activation='relu'))
-    #     model.add(Dense(num_actions))
-    #     model.compile(sgd(lr=.1), "mse")
-    #     return model
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(30, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(20, activation='relu'))
-        model.add(Dense(10, activation='relu'))
+        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(24, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
@@ -69,38 +60,35 @@ class DQNAgent:
     def save(self, name):
         self.model.save_weights(name)
 
-import time as tempo
 
 if __name__ == "__main__":
-    env = gym.make('Breakout-v0')
-    env._max_episode_steps = 5000
-    state_size = 100800
-    # print(env.observation_space)
+    env = gym.make('CartPole-v1')
+    state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
     agent = DQNAgent(state_size, action_size)
     # agent.load("./save/cartpole-dqn.h5")
     done = False
     batch_size = 32
 
-    for e in range(EPISODES):
-        contawin = 0
+    for e in range(1):
         state = env.reset()
-        state = np.reshape(state, [1,100800])
-        for time in range(5000):
+        print(state_size)
+        print(state)
+        print("\n"*20)
+        state = np.reshape(state, [1, state_size])
+        print(state)
+        print("\n"*20)
+        for time in range(500):
+            # env.render()
             action = agent.act(state)
             next_state, reward, done, _ = env.step(action)
-            if e%50 == 0:
-                env.render()
-                tempo.sleep(0.05)
-            reward = reward if not done else -1
-            contawin += reward
-            # print(reward)
-            next_state = np.reshape(next_state, [1,100800])
+            reward = reward if not done else -10
+            next_state = np.reshape(next_state, [1, state_size])
             agent.remember(state, action, reward, next_state, done)
             state = next_state
             if done:
                 print("episode: {}/{}, score: {}, e: {:.2}"
-                      .format(e, EPISODES, contawin, agent.epsilon))
+                      .format(e, EPISODES, time, agent.epsilon))
                 break
         if len(agent.memory) > batch_size:
             agent.replay(batch_size)
